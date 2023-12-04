@@ -1,0 +1,18 @@
+{
+    "partitioners": [
+
+        {
+            "name": "ogpart",
+            "subp": 256
+        }
+    ],
+    "num_partitions": [
+         16
+    ],
+    "datasets": [
+        "data/twitter"
+    ],
+    "imbalance": 1.1,
+    "run_async": false,
+    "vertex_balanced": 0
+}
