@@ -16,11 +16,6 @@ enum update_type_t
     UPDATE
 };
 
-#define int ll
-
-/*
-TODO: Use int or ll for edge weights?
-*/
 
 class Refine
 {
@@ -28,14 +23,14 @@ class Refine
     const int PARTITION_COUNT, SUB_PARTITION_COUNT;
 
     // adjacency matrix representing edge weights between all sub partitions
-    vector<unordered_map<int, int>> &sub_partition_graph;
+    vector<unordered_map<int, ll>> &sub_partition_graph;
 
     // sub partition to partition mapping
     vector<int> &sub_to_partition;
 
-    vector<int> &sub_partition_sz;
+    vector<ll> &sub_partition_sz;
 
-    vector<int> partition_sz;
+    vector<ll> partition_sz;
 
     /*
     Dim: [SUB_PARTITIONS][PARTITIONS]
@@ -43,7 +38,7 @@ class Refine
     Represents the edge cut out of partition - partition_id
     if sub_id is present in partition_id
     */
-    vector<vector<int>> sub_edge_cut_by_partition;
+    vector<vector<ll>> sub_edge_cut_by_partition;
 
     /*
     Dim: [PARTITIONS][PARTITIONS]
@@ -55,7 +50,7 @@ class Refine
     partition_id where score represents the decrease in edge cut if
     sub_partition_id is moved from partition_id to adj_partition_id
     */
-    vector<vector<Segment_Tree<Min_Node<int>, int>>> sub_move_score;
+    vector<vector<Segment_Tree<Min_Node<ll>, ll>>> sub_move_score;
 
     /*
     Dim: [SUB_ID][TO_PARTITION_ID] -> SEGTREE_IND
@@ -65,23 +60,23 @@ class Refine
 
     const int INFO_GAIN_THRESHOLD = -1;
 
-    const int PARTITION_CAPACITY_CONSTRAINT;
+    const ll PARTITION_CAPACITY_CONSTRAINT;
 
     const int MAX_SUB_IN_PARTITION;
 
     // Populate in build phase and track it during refinement
-    int edge_cut;
+    ll edge_cut;
     vector<int> sub_in_partition;
 
 public:
     Refine(const int partition_count, const int sub_partition_count,
-           vector<unordered_map<int, int>> &sub_partition_graph,
-           vector<int> &sub_to_partition, vector<int> &sub_partition_sz,
+           vector<unordered_map<int, ll>> &sub_partition_graph,
+           vector<int> &sub_to_partition, vector<ll> &sub_partition_sz,
            const int info_gain_threshold,
-           const int partition_capacity_constraint);
+           const ll partition_capacity_constraint);
 
     // refines and updates sub_to_partition mapping. Returns the final edge cut
-    pair<int, int> refine();
+    pair<ll, ll> refine();
 
 private:
     void swap_sub_partitions(int sub_u_id, int sub_v_id);
@@ -107,6 +102,6 @@ private:
     // gets neighbours of sub partitions sub_u and sub_v
     vector<int> get_sub_neighbours(int sub_u_id);
     vector<int> get_sub_neighbours(int sub_u_id, int sub_v_id);
-    int get_total_edge_cut();
-    inline int get(unordered_map<int, int> &mp, int key);
+    ll get_total_edge_cut();
+    inline ll get(unordered_map<int, ll> &mp, int key);
 };

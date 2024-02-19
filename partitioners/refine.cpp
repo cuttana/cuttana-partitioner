@@ -1,17 +1,15 @@
 #include "refine.hpp"
 
-// TODO: Remove hardcoded directory
-const string out_dir = "results";
 
-# define int long long
+const string out_dir = "results";
 
 int del_check = INT_MAX;
 // O(P^2 S^2 + P^2 SlgS) = O((PS)^2)
 Refine::Refine(const int partition_count, const int sub_partition_count,
-               vector<unordered_map<int, int>>& sub_partition_graph,
-               vector<int>& sub_to_partition, vector<int>& sub_partition_sz,
+               vector<unordered_map<int, ll>>& sub_partition_graph,
+               vector<int>& sub_to_partition, vector<ll>& sub_partition_sz,
                const int info_gain_threshold,
-               const int partition_capacity_constraint)
+               const ll partition_capacity_constraint)
     : PARTITION_COUNT(partition_count),
       SUB_PARTITION_COUNT(sub_partition_count),
       sub_partition_graph(sub_partition_graph),
@@ -32,7 +30,7 @@ Refine::Refine(const int partition_count, const int sub_partition_count,
     partition_sz.assign(PARTITION_COUNT, 0);
 
     sub_edge_cut_by_partition.assign(SUB_PARTITION_COUNT,
-                                     vector<int>(PARTITION_COUNT, 0));
+                                     vector<ll>(PARTITION_COUNT, 0));
 
     sub_to_segtree_ind.assign(SUB_PARTITION_COUNT,
                               vector<int>(PARTITION_COUNT, -1));
@@ -41,7 +39,7 @@ Refine::Refine(const int partition_count, const int sub_partition_count,
     for (int part_u = 0; part_u < PARTITION_COUNT; part_u++) {
         sub_move_score[part_u].assign(
             PARTITION_COUNT,
-            Segment_Tree<Min_Node<int>, int>(MAX_SUB_IN_PARTITION));
+            Segment_Tree<Min_Node<ll>, ll>(MAX_SUB_IN_PARTITION));
     }
 
     build_edge_cut_by_partition();
@@ -54,9 +52,8 @@ Refine::Refine(const int partition_count, const int sub_partition_count,
 
 // Time per iteration = O(P^2 + PSlgS). If S>P, then O(PSlgS)
 
-// TODO: Return only final edge cut
-// TODO: Refactor phase 1 and phase 2 into methods
-pair<int, int> Refine::refine() {
+
+pair<ll, ll> Refine::refine() {
     cout << "Initial refine edge cut = " << edge_cut << "\n";
 
     Timer refine_phase1_timer("Refine Phase 1");
@@ -74,9 +71,9 @@ pair<int, int> Refine::refine() {
     fout << edge_cut << " ";
 #endif
 
-    int PARTITION_CAPACITY_CONSTRAINT_LB = 
+    ll PARTITION_CAPACITY_CONSTRAINT_LB = 
         0;
-    int PARTITION_CAPACITY_CONSTRAINT_UB =
+    ll PARTITION_CAPACITY_CONSTRAINT_UB =
         PARTITION_CAPACITY_CONSTRAINT * 110 / 100;
 
     cout << "Refinement partition Capacity = "
@@ -92,13 +89,13 @@ pair<int, int> Refine::refine() {
         Timer refine_phase2_timer("Refine Phase 2");
         refine_phase2_timer.tick();
 
-        int delta_edge_cut_phase2 = 0;
+        ll delta_edge_cut_phase2 = 0;
         int refine_steps_phase2 = 0;
 
         while (1) {
             refine_steps_phase2++;
-            // TODO: Update if type is changed to long long
-            int best_score = INT_MAX;
+
+            ll best_score = 1e18;
             pair<int, int> sub_partition_to_move = {
                 -1, -1};  // sub_u_id, part_to_id
 
@@ -181,7 +178,7 @@ pair<int, int> Refine::refine() {
                 }
             }
 #ifdef VERIFY
-            int cur_edge_cut = get_total_edge_cut();
+            ll cur_edge_cut = get_total_edge_cut();
             cout << cur_edge_cut << " " << edge_cut << "  :: " << best_score
                  << "\n";
             assert(cur_edge_cut - edge_cut == best_score);
@@ -235,8 +232,7 @@ pair<int, int> Refine::refine() {
         fout << edge_cut << " ";
 #endif
 
-        // TODO: Update if type is changed to long long
-        int best_score = INT_MAX;
+        ll best_score = 1e18;
         vector<pair<int, int>> sub_partitions_to_move;  // sub_u_id,
                                                         // part_to_id
 
@@ -248,7 +244,6 @@ pair<int, int> Refine::refine() {
             // del_check = min(del_check, partition_sz[part_u_id]);
             // cout << del_check << endl;
             for (int part_v_id = 0; part_v_id < PARTITION_COUNT; part_v_id++) {
-                // TODO: check atleast 2-3 subs for best score?
                 if (part_u_id == part_v_id) continue;
 
                 if (sub_in_partition[part_v_id] >= MAX_SUB_IN_PARTITION)
@@ -257,7 +252,6 @@ pair<int, int> Refine::refine() {
                 auto [score, sub_u_id] =
                     sub_move_score[part_u_id][part_v_id].get_min();
 
-                //TODO: Should be hard constraint?
                 if (partition_sz[part_v_id] + sub_partition_sz[sub_u_id] >
                     PARTITION_CAPACITY_CONSTRAINT_UB) {
                     // evict some sub partition out of part_v that would affect
@@ -273,13 +267,12 @@ pair<int, int> Refine::refine() {
                         auto [second_move_score, sub_v_id] =
                             sub_move_score[part_v_id][part_x_id].get_min();
 
-                        int effective_score = score + second_move_score;
+                        ll effective_score = score + second_move_score;
                         effective_score +=
                             get(sub_partition_graph[sub_u_id], sub_v_id);
 
                         if (part_x_id == part_u_id) {
                             // handle the case of swap
-                            // TODO: Test this code path
                             effective_score +=
                                 get(sub_partition_graph[sub_v_id], sub_u_id);
                         }
@@ -385,7 +378,6 @@ void Refine::move_sub_partition(int sub_u_id, int part_to_id) {
     sub_in_partition[part_to_id]++;
     partition_sz[part_to_id] += sub_partition_sz[sub_u_id];
 
-    // TODO: Optimize
     update_neighbors_move_score_on_move(sub_u_id, part_from_id, part_to_id,
                                         UPDATE);
 
@@ -463,11 +455,11 @@ void Refine::update_sub_move_score(int sub_id, int adj_partition_id,
                                    update_type_t update_type) {
     int assigned_partition_id = sub_to_partition[sub_id];
 
-    int edge_cut_after = sub_edge_cut_by_partition[sub_id][adj_partition_id];
-    int edge_cut_before =
+    ll edge_cut_after = sub_edge_cut_by_partition[sub_id][adj_partition_id];
+    ll edge_cut_before =
         sub_edge_cut_by_partition[sub_id][assigned_partition_id];
 
-    int delta_edge_cut = edge_cut_after - edge_cut_before;
+    ll delta_edge_cut = edge_cut_after - edge_cut_before;
 
     // Critical section
     int& st_pos = sub_to_segtree_ind[sub_id][adj_partition_id];
@@ -529,7 +521,7 @@ void Refine::update_edge_cut_by_partition_on_move(int sub_u_id, int par_to_id) {
 
     // non neighbours are not affected
     for (int adj_sub_id : get_sub_neighbours(sub_u_id, sub_u_id)) {
-        int edge_weight = get(sub_partition_graph[adj_sub_id], sub_u_id);
+        ll edge_weight = get(sub_partition_graph[adj_sub_id], sub_u_id);
         sub_edge_cut_by_partition[adj_sub_id][par_u_id] += edge_weight;
         sub_edge_cut_by_partition[adj_sub_id][par_to_id] -= edge_weight;
     }
@@ -565,10 +557,10 @@ vector<int> Refine::get_sub_neighbours(int sub_u_id) {
 
 // Use only for verification
 // O((PS)^2)
-int Refine::get_total_edge_cut() {
+ll Refine::get_total_edge_cut() {
     Timer query_edge_cut_timer("Edge cut query timer");
     query_edge_cut_timer.tick();
-    int edge_cut = 0;
+    ll edge_cut = 0;
     for (int sub_u_id = 0; sub_u_id < SUB_PARTITION_COUNT; sub_u_id++) {
         for (auto& [sub_v_id, edge_weight] : sub_partition_graph[sub_u_id]) {
             if (sub_to_partition[sub_u_id] != sub_to_partition[sub_v_id]) {
@@ -584,7 +576,7 @@ int Refine::get_total_edge_cut() {
     return edge_cut;
 }
 
-inline int Refine::get(unordered_map<int, int>& mp, int key) {
+inline ll Refine::get(unordered_map<int, ll>& mp, int key) {
     auto it = mp.find(key);
     if (it == mp.end()) return 0;
     return it->second;

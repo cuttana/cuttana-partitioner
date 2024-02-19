@@ -2,7 +2,6 @@
 
 #include <bits/stdc++.h>
 #define INF 0x3f3f3f3f
-// #define int ll
 
 typedef long long ll;
 using namespace std;
@@ -53,7 +52,7 @@ struct Min_Node {
         }
     }
 
-    pair<int, T> get_score_pair() { return {min_score, min_elem}; }
+    pair<T, int> get_score_pair() { return {min_score, min_elem}; }
 };
 
 /*
@@ -105,7 +104,7 @@ struct Segment_Tree {
         prop(i >> 1);
     }
 
-    pair<int, int> get_min() {
+    pair<T, int> get_min() {
         auto res = query(0, n - 1).get_score_pair();
         // assert(res.first != INF && res.second != -1);
         return res;

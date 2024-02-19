@@ -12,22 +12,21 @@
 
 typedef long long ll;
 using namespace std;
-#define int ll
 
 // inline mt19937 rng(chrono::steady_clock::now().time_since_epoch().count());
 inline mt19937 rng(42), rng_sub(42);
 
 bool IS_DIRECTED;
 
-ll get_int(char *&file_ptr)
-{
+template <typename T>
+T read_int(char *&file_ptr){
     while (!isdigit(*file_ptr))
         file_ptr++;
 
-    ll num = 0;
+    T num = 0;
     while (isdigit(*file_ptr))
     {
-        num = num * 10ll + (*file_ptr - '0');
+        num = num * 10 + (*file_ptr - '0');
         file_ptr++;
     }
     return num;
@@ -47,7 +46,7 @@ struct Result
 {
     string dataset;
     int part_count, sub_part_count;
-    double stream_edge_cut, phase1_edge_cut, phase2_edge_cut;
+    long double stream_edge_cut, phase1_edge_cut, phase2_edge_cut;
     Timer &program_timer;
     long double edge_count;
     bool is_vertex_balanced;
@@ -87,31 +86,30 @@ class OGPart
     ll vertex_count, edge_count;
 
     vector<int> vertex_to_partition, vertex_to_sub_partition, sub_to_partition;
-    vector<unordered_map<int, int>> sub_part_graph;
+    vector<unordered_map<int, ll>> sub_part_graph;
     // vertex_message[v][p] -> 1 if v sends msg to partition p
     vector<bitset<MAX_PARTITIONS>> vertex_message;
 
     // holds balance metadata; [0] = parent partition, [1] = sub partition
     vector<double> alpha;
-    vector<int> capacity_constraint;
+    vector<ll> capacity_constraint;
 
-    vector<int> partition_cap, partition_cap_edge;
-    vector<vector<int>> sub_partition_cap, sub_partition_cap_edge;
-    int sub_vertex_count, sub_edge_count;
+    vector<ll> partition_cap, partition_cap_edge;
+    vector<vector<ll>> sub_partition_cap, sub_partition_cap_edge;
+    ll sub_vertex_count, sub_edge_count;
 
-    vector<int> sub_partition_sz;
+    vector<ll> sub_partition_sz;
 
     // tracking
-    int stream_edge_cut = 0;
-    int vertices_partitioned = 0;
+    ll stream_edge_cut = 0;
+    ll vertices_partitioned = 0;
 
     // buffer variables
 
-    // TODO: Parameterize - Buffer variables
     // Percentage of vertices to be initially partitioned
     int BUFFER_INIT_THRESHOLD = 0;
     const double theta = 2, buffer_deg_threshold = 100;
-    int BUFFER_MAX_CAPACITY = 1e6; // 1e6
+    ll BUFFER_MAX_CAPACITY = 1e6; // 1e6
     const bool ENABLE_BUFFER_EVICTION = false;
     const int BUFFER_EVICTION_DEG_THRESHOLD = INT_MAX;
     const int BUFFER_EVICTION_PARTITION_THRESHOLD = 0;
@@ -120,7 +118,6 @@ class OGPart
     set<pair<double, int>, greater<>> buffered_nodes;
     // vid -> adj
     vector<vector<int>> buffered_nodes_adj;
-    // TODO: optimize with bitset
     vector<BufferEntry> buffer_mask;
     queue<int> buffer_partition_queue;
 
@@ -135,10 +132,9 @@ class OGPart
     // Timer parent_part_timer, sub_part_timer;
 
     // part_neighbour[part_id] -> {neighbour_count, cur_vertex_id}
-    vector<pair<int, int>> part_neighbour;
-    vector<pair<int, int>> sub_part_neighbour;
+    vector<pair<ll, int>> part_neighbour;
+    vector<pair<ll, int>> sub_part_neighbour;
 
-    // TODO: Optimize with segment tree
     set<pair<int, int>> balance_score_part;
     vector<set<pair<int, int>>> balance_score_sub_part;
     double mu;
@@ -189,7 +185,6 @@ public:
 
         for (int i = 0; i < total_sub_part; i++)
         {
-            // TODO: Update this dynamically
             sub_part_graph[i].reserve(600);
             sub_part_graph[i].max_load_factor(0.25);
         }
@@ -211,13 +206,11 @@ public:
         {
             capacity_constraint[0] =
                 2 * (edge_count / part_count) * (1 + P1_BALANCE_SLACK);
-            // TODO: 2* why!??!?! for directed it should be \times 4?! no?!
         }
 
-        sub_partition_cap.assign(part_count, vector<int>(sub_part_count, 0));
+        sub_partition_cap.assign(part_count, vector<ll>(sub_part_count, 0));
         sub_partition_cap_edge.assign(part_count,
-                                      vector<int>(sub_part_count, 0));
-        // TODO: Handle edge balanced
+                                      vector<ll>(sub_part_count, 0));
         sub_vertex_count =
             (vertex_count / part_count) * (1 + P1_BALANCE_SLACK) + 1;
         sub_edge_count = (edge_count / part_count) * (1 + P1_BALANCE_SLACK) + 1;
@@ -337,7 +330,6 @@ public:
                 // adj -> store nei assignment as well {neighbour,
                 // assigned_sub_part}
 
-                // TODO: Optimize
                 int neighbour_count = int(vid_adj.second.size());
                 vector<pair<int, int>> adj_state(neighbour_count);
                 for (int i = 0; i < neighbour_count; i++) {
@@ -383,18 +375,19 @@ public:
             char *data = static_cast<char *>(mappedFile);
             char *fin = data;
 
-            vertex_count = get_int(fin);
-            edge_count = get_int(fin);
+            vertex_count = read_int<ll>(fin);
+            edge_count = read_int<ll>(fin);
 
             cout << "--- Streaming graph ---\n";
 
             for (int i = 1; i <= vertex_count; i++) {
                 // wait if sub graph buffer is too big flush it
                 flush_wait_timer.tick();
-                if (sub_part_buffer.size_approx() >= 1e5 ||
-                    sub_graph_buffer.size_approx() >= 1e5) {
-                    while (sub_part_buffer.size_approx() >= 100 ||
-                           sub_graph_buffer.size_approx() >= 100) {
+                if (sub_part_buffer.size_approx() >= 1e6 ||
+                    sub_graph_buffer.size_approx() >= 1e6) {
+                    while (sub_part_buffer.size_approx() >= 1e5 ||
+                           sub_graph_buffer.size_approx() >= 1e5) {
+                            std::this_thread::sleep_for (std::chrono::seconds(1));
                     }
                 }
                 flush_wait_timer.untick();
@@ -407,16 +400,14 @@ public:
                     evict_buffer(buffer_vid);
                 }
 
-                int cur_vertex_id, neighbour_count;
-                cur_vertex_id = get_int(fin);
-                neighbour_count = get_int(fin);
+                int cur_vertex_id = read_int<int>(fin);
+                int neighbour_count = read_int<int>(fin);
 
-                // TODO: optimize
                 vector<int> adj(neighbour_count);
 
                 double cnt_adj_partitioned = 0;
                 for (int j = 0; j < neighbour_count; j++) {
-                    adj[j] = get_int(fin);
+                    adj[j] = read_int<int>(fin);
 
                     cnt_adj_partitioned += vertex_to_partition[adj[j]] != -1;
                 }
@@ -447,14 +438,12 @@ public:
                 bool is_added_to_buffer =
                     partition_vertex(cur_vertex_id, adj, false);
                 assert(!is_added_to_buffer);
-
                 sub_part_buffer.enqueue({cur_vertex_id, adj});
             }
             // Clean up
             munmap(mappedFile, fileSize);
             close(fileDescriptor);
 
-            // TODO: Disable score updates here
             while (!buffered_nodes.empty()) evict_buffer();
             producer_timer.untick();
             cout << "=== Producer done ===" << endl; });
@@ -500,8 +489,8 @@ public:
             // sub_partition_cap = vector<vector<int>>();
             // sub_partition_cap_edge = vector<vector<int>>();
 
-            part_neighbour = vector<pair<int, int>>();
-            sub_part_neighbour = vector<pair<int, int>>();
+            part_neighbour = vector<pair<ll, int>>();
+            sub_part_neighbour = vector<pair<ll, int>>();
 
             balance_score_part = set<pair<int, int>>();
             balance_score_sub_part = vector<set<pair<int, int>>>();
@@ -526,7 +515,6 @@ public:
             refine_capacity *= 2;
         }
 
-        // TODO: Add refine flag
         Refine refiner(part_count, total_sub_part, sub_part_graph,
                        sub_to_partition, sub_partition_sz, INFO_GAIN_THRESHOLD,
                        refine_capacity);
@@ -564,7 +552,6 @@ public:
         out_mapping.close();
     }
 
-    // TODO: Move verification to seperate file
     void verify()
     {
         string verify_file_path = input_file_path;
@@ -581,8 +568,8 @@ public:
         ll edge_cut = 0;
         ll ver_edge_count = 0;
 
-        int mn = INT_MAX, mx = -1;
-        vector<int> sz(part_count), sz_edge(part_count);
+        ll mn = 1000000000000000000LL, mx = -1;
+        vector<ll> sz(part_count), sz_edge(part_count);
 
         ll sum_rep_fac = 0, communication_vol = 0;
 
@@ -590,6 +577,7 @@ public:
         {
             int cur_vertex_id, neighbour_count;
             fin >> cur_vertex_id >> neighbour_count;
+            
             ver_edge_count += neighbour_count;
 
             int par_i =
@@ -620,8 +608,8 @@ public:
         assert(ver_edge_count == edge_count);
         double replication_factor = sum_rep_fac * 1.0 / vertex_count;
 
-        int mx_edge = 0;
-        int mn_edge = sz_edge[0] / 2;
+        ll mx_edge = 0;
+        ll mn_edge = sz_edge[0] / 2;
 
         for (int i = 0; i < part_count; i++)
         {
@@ -642,7 +630,6 @@ public:
 #if !defined(CV)
         if (!IS_DIRECTED && result.phase2_edge_cut != edge_cut)
         {
-            // TODO: Fix in the case of twitter
             if (abs(result.phase2_edge_cut - edge_cut) == 1)
             {
                 cout << "\n!!! Incorrect edge cut reported !!!\n\n";
@@ -666,7 +653,7 @@ public:
     {
         ifstream fin(input_file_path);
 
-        int vertex_count, edge_count;
+        ll vertex_count, edge_count;
         fin >> vertex_count >> edge_count;
 
         vector<int> cnt_nodes(1e7), edge_cut(1e7);
@@ -677,7 +664,7 @@ public:
             fin >> cur_vertex_id >> neighbour_count;
 
             cnt_nodes[neighbour_count] += neighbour_count;
-            int cur_edge_cut = 0;
+            ll cur_edge_cut = 0;
 
             int par_i =
                 sub_to_partition[vertex_to_sub_partition[cur_vertex_id]];
@@ -766,7 +753,6 @@ private:
                 IS_VERTEX_BALANCED ? 1 : int(adj.size());
         }
 
-        // TODO: Study edge balance capacity updates
 
         if (!partition_for_sub)
         {
@@ -776,9 +762,9 @@ private:
                  best_partition});
 
             partition_cap[best_partition] += 1;
-            partition_cap_edge[best_partition] += int(adj.size());
+            partition_cap_edge[best_partition] += ll(adj.size());
 
-            int current_capacity =
+            ll current_capacity =
                 (IS_VERTEX_BALANCED ? partition_cap[best_partition]
                                     : partition_cap_edge[best_partition]);
             if (current_capacity < capacity_constraint[partition_for_sub])
@@ -796,7 +782,7 @@ private:
 
             sub_partition_cap[parent_partition][best_partition] += 1;
             sub_partition_cap_edge[parent_partition][best_partition] +=
-                int(adj.size());
+                ll(adj.size());
 
             int current_capacity =
                 (IS_VERTEX_BALANCED
@@ -825,7 +811,6 @@ private:
         vertices_partitioned += partition_for_sub;
 
         // update buffer
-        // TODO MILAD: check if all neighbours are assigned force eviction
         for (int neighbour : adj)
         {
             if (!partition_for_sub && buffer_mask[neighbour].valid)
@@ -847,7 +832,6 @@ private:
             for (int neighbour : adj)
             {
                 // update adj in buffer
-                // TODO: memory issue with buffer_mask, can be unordered map
                 if (buffer_mask[neighbour].valid)
                 {
                     buffer_mask[neighbour].adj_partitioned++;
@@ -891,7 +875,7 @@ private:
             if (nei_part == -1)
                 continue;
 
-            int neigh_part_cap =
+            ll neigh_part_cap =
                 get_partition_capacity(nei_part, parent_partition);
 
             if (neigh_part_cap >= capacity_constraint[partition_for_sub])
@@ -1097,7 +1081,6 @@ private:
                        pow(1.0 * partition_cap[partition], GAMMA - 1);
             else
             {
-                // TODO: Parameterize - Sub_gamma
                 double SUB_GAMMA = 1;
                 int vertex_count =
                     sub_partition_cap[parent_partition][partition];
@@ -1115,16 +1098,13 @@ private:
                            GAMMA - 1);
             else
             {
-                // TODO: Parameterize - Sub_gamma
                 double SUB_GAMMA = 1.1;
                 int vertex_count =
                     sub_partition_cap[parent_partition][partition];
                 int edge_count =
                     sub_partition_cap_edge[parent_partition][partition];
                 return 0;
-                // return alpha[partition_for_sub] * SUB_GAMMA *
-                //        pow((1.0 * vertex_count + mu * 1.0 * edge_count) / 2.0,
-                //            SUB_GAMMA - 1);
+    
             }
         }
     }
@@ -1174,8 +1154,7 @@ private:
         //         edge_count /= 2;
         // #endif
 
-        // TODO: Change range for ll -> MILAD: Fixed
-        int max_partition_sz = partition_cap[0],
+        ll max_partition_sz = partition_cap[0],
             min_partition_sz = partition_cap[0];
         for (int i = 0; i < part_count; i++)
         {
@@ -1186,11 +1165,8 @@ private:
     }
 };
 
-#undef int
 int main(int argc, const char *argv[])
 {
-#define int ll
-
     program_timer.tick();
     #ifdef CV
         cout << "CV MODE!" << endl;
@@ -1199,10 +1175,9 @@ int main(int argc, const char *argv[])
     assert(argc >= 4);
 
     string input_file_path;
-    // TODO: Refactor name
     int part_count = -1, sub_part_count = -1;
     double BALANCE_SLACK = 0.05, GAMMA = 1.5;
-    int INFO_GAIN_THRESHOLD = -1;
+    ll INFO_GAIN_THRESHOLD = -1;
     bool IS_VERTEX_BALANCED = true;
 
     for (int i = 1; i < argc; i += 2)
@@ -1242,7 +1217,6 @@ int main(int argc, const char *argv[])
     }
     assert(part_count > 0 && sub_part_count > 0);
 
-    // TODO: Better way to find directed?
     IS_DIRECTED = input_file_path.find("directed") != string::npos;
 
     OGPart ogpart(input_file_path, part_count, sub_part_count, BALANCE_SLACK,
