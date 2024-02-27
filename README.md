@@ -93,7 +93,7 @@ You can read and manipulate `exp.json` which contains the specification and usin
 ```
 
 You can run all experiments. 
-
+Also, for an efficient single thread implementation you can use `exp_single_thread.sh`.
 ### Communication Volume Mode
 
 To optimize for communication volume you should compile with defining `CV` flag. 

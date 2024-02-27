@@ -10,7 +10,7 @@
          16
     ],
     "datasets": [
-        "data/twitter"
+        "examples/emailEnron.txt"
     ],
     "imbalance": 1.1,
     "run_async": false,
