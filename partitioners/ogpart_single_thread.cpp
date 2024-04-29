@@ -19,18 +19,22 @@ inline mt19937 rng(42), rng_sub(42);
 bool IS_DIRECTED;
 
 template <typename T>
-T read_int(char *&file_ptr) {
-    while (!isdigit(*file_ptr)) file_ptr++;
+T read_int(char *&file_ptr)
+{
+    while (!isdigit(*file_ptr))
+        file_ptr++;
 
     T num = 0;
-    while (isdigit(*file_ptr)) {
+    while (isdigit(*file_ptr))
+    {
         num = num * 10 + (*file_ptr - '0');
         file_ptr++;
     }
     return num;
 }
 
-struct BufferEntry {
+struct BufferEntry
+{
     double score = -1;
     int degree;
     int adj_partitioned;
@@ -39,7 +43,8 @@ struct BufferEntry {
 
 const int MAX_PARTITIONS = 130;
 
-struct Result {
+struct Result
+{
     string dataset;
     int part_count, sub_part_count;
     long double stream_edge_cut, phase1_edge_cut, phase2_edge_cut;
@@ -51,7 +56,8 @@ struct Result {
 
     Result(Timer &program_timer) : program_timer(program_timer) {}
 
-    friend std::ostream &operator<<(std::ostream &out, const Result &res) {
+    friend std::ostream &operator<<(std::ostream &out, const Result &res)
+    {
         out << "\nResult: " << (res.is_vertex_balanced ? "VB" : "EB") << " "
             << res.imbalance << " " << res.sub_part_count << " " << res.dataset
             << " " << res.part_count << " "
@@ -66,7 +72,8 @@ struct Result {
 Timer program_timer("Program runtime timer");
 Result result(program_timer);
 
-class OGPart {
+class OGPart
+{
     const string input_file_path;
     const int part_count, sub_part_count, total_sub_part;
     double P1_BALANCE_SLACK, P2_BALANCE_SLACK;
@@ -104,7 +111,7 @@ class OGPart {
     // Percentage of vertices to be initially partitioned
     int BUFFER_INIT_THRESHOLD = 0;
     const double theta = 2, buffer_deg_threshold = 100;
-    ll BUFFER_MAX_CAPACITY = 1e6;  // 1e6
+    ll BUFFER_MAX_CAPACITY = 1e6; // 1e6
     const bool ENABLE_BUFFER_EVICTION = false;
     const int BUFFER_EVICTION_DEG_THRESHOLD = INT_MAX;
     const int BUFFER_EVICTION_PARTITION_THRESHOLD = 0;
@@ -135,7 +142,7 @@ class OGPart {
 
     string dataset_name;
 
-   public:
+public:
     OGPart(string input_file_path, int part_count, int sub_part_count,
            double balance_slack, double gamma, int info_gain_threshold,
            Result &result, bool is_vertex_balanced)
@@ -149,7 +156,8 @@ class OGPart {
           result(result),
           IS_VERTEX_BALANCED(is_vertex_balanced),
           buffer_stream_timer("Buffer stream timer"),
-          buffer_update_timer("Buffer update timer") {
+          buffer_update_timer("Buffer update timer")
+    {
         // read vertex count and edge count
         ifstream fin(input_file_path);
         dataset_name = input_file_path.substr(input_file_path.rfind("/") + 1);
@@ -170,7 +178,8 @@ class OGPart {
         vertex_message.resize(vertex_count + 1);
 #endif
 
-        for (int i = 0; i < total_sub_part; i++) {
+        for (int i = 0; i < total_sub_part; i++)
+        {
             // TODO: Update this dynamically
             sub_part_graph[i].reserve(600);
             sub_part_graph[i].max_load_factor(0.25);
@@ -184,10 +193,13 @@ class OGPart {
 
         alpha[0] = pow(part_count, GAMMA - 1) * double(edge_count) /
                    pow(1.0 * vertex_count, GAMMA);
-        if (IS_VERTEX_BALANCED) {
+        if (IS_VERTEX_BALANCED)
+        {
             capacity_constraint[0] =
                 (vertex_count / part_count) * (1 + P1_BALANCE_SLACK);
-        } else {
+        }
+        else
+        {
             capacity_constraint[0] =
                 2 * (edge_count / part_count) * (1 + P1_BALANCE_SLACK);
             // TODO: 2* why!??!?! for directed it should be \times 4?! no?!
@@ -203,10 +215,13 @@ class OGPart {
 
         alpha[1] = pow(sub_part_count, GAMMA - 1) * double(sub_edge_count) /
                    pow(1.0 * sub_vertex_count, GAMMA);
-        if (IS_VERTEX_BALANCED) {
+        if (IS_VERTEX_BALANCED)
+        {
             capacity_constraint[1] =
                 (sub_vertex_count / sub_part_count) * (1 + P1_BALANCE_SLACK);
-        } else {
+        }
+        else
+        {
             capacity_constraint[1] =
                 2 * (sub_edge_count / sub_part_count) * (1 + P1_BALANCE_SLACK);
         }
@@ -217,10 +232,12 @@ class OGPart {
         sub_part_neighbour.assign(sub_part_count, {0, -1});
 
         balance_score_sub_part.resize(part_count);
-        for (int part = 0; part < part_count; part++) {
+        for (int part = 0; part < part_count; part++)
+        {
             balance_score_part.insert({0, part});
 
-            for (int sub_part = 0; sub_part < sub_part_count; sub_part++) {
+            for (int sub_part = 0; sub_part < sub_part_count; sub_part++)
+            {
                 balance_score_sub_part[part].insert({0, sub_part});
             }
         }
@@ -230,18 +247,21 @@ class OGPart {
     }
 
     // entrypoint to partition
-    void partition() {
+    void partition()
+    {
         Timer stream_timer("Stream phase timer");
         stream_timer.tick();
 
         int fileDescriptor = open(input_file_path.c_str(), O_RDONLY);
-        if (fileDescriptor == -1) {
+        if (fileDescriptor == -1)
+        {
             std::cerr << "Failed to open the file." << std::endl;
             return;
         }
 
         off_t fileSize = lseek(fileDescriptor, 0, SEEK_END);
-        if (fileSize == -1) {
+        if (fileSize == -1)
+        {
             std::cerr << "Failed to determine file size." << std::endl;
             close(fileDescriptor);
             return;
@@ -250,7 +270,8 @@ class OGPart {
         // Map the file into memory
         void *mappedFile =
             mmap(nullptr, fileSize, PROT_READ, MAP_PRIVATE, fileDescriptor, 0);
-        if (mappedFile == MAP_FAILED) {
+        if (mappedFile == MAP_FAILED)
+        {
             std::cerr << "Failed to map the file into memory." << std::endl;
             close(fileDescriptor);
             return;
@@ -264,10 +285,12 @@ class OGPart {
 
         cout << "--- Streaming graph ---\n";
 
-        for (int i = 1; i <= vertex_count; i++) {
+        for (int i = 1; i <= vertex_count; i++)
+        {
             // query nodes for eviction
             int buffer_vid;
-            while (buffer_partition_queue.size()) {
+            while (buffer_partition_queue.size())
+            {
                 buffer_vid = buffer_partition_queue.front();
                 buffer_partition_queue.pop();
                 evict_buffer(buffer_vid);
@@ -280,7 +303,8 @@ class OGPart {
             vector<int> adj(neighbour_count);
 
             double cnt_adj_partitioned = 0;
-            for (int j = 0; j < neighbour_count; j++) {
+            for (int j = 0; j < neighbour_count; j++)
+            {
                 adj[j] = read_int<int>(fin);
 
                 cnt_adj_partitioned += vertex_to_partition[adj[j]] != -1;
@@ -294,7 +318,8 @@ class OGPart {
                 theta * cnt_adj_partitioned / deg + deg / buffer_deg_threshold;
 
             if (int(buffered_nodes.size()) < BUFFER_MAX_CAPACITY &&
-                deg < 1000) {
+                deg < 1000)
+            {
                 add_buffer(buffer_score, cur_vertex_id, adj,
                            cnt_adj_partitioned);
                 continue;
@@ -302,7 +327,8 @@ class OGPart {
 
             int best_buffer_score = buffered_nodes.begin()->first;
 
-            if (buffer_score < best_buffer_score && deg < 1000) {
+            if (buffer_score < best_buffer_score && deg < 1000)
+            {
                 add_buffer(buffer_score, cur_vertex_id, adj,
                            cnt_adj_partitioned);
                 evict_buffer();
@@ -321,7 +347,8 @@ class OGPart {
         close(fileDescriptor);
 
         // TODO: Disable score updates here
-        while (!buffered_nodes.empty()) evict_buffer();
+        while (!buffered_nodes.empty())
+            evict_buffer();
 
         stream_timer.untick();
         show_stream_stats();
@@ -332,7 +359,8 @@ class OGPart {
 
 #ifdef DEBUG
         int sub_part_graph_adj_size = 0;
-        for (int i = 0; i < total_sub_part; i++) {
+        for (int i = 0; i < total_sub_part; i++)
+        {
             sub_part_graph_adj_size += int(sub_part_graph[i].size());
         }
 
@@ -341,7 +369,8 @@ class OGPart {
 #endif
 
         sub_to_partition.resize(total_sub_part);
-        for (int sub_id = 0; sub_id < total_sub_part; sub_id++) {
+        for (int sub_id = 0; sub_id < total_sub_part; sub_id++)
+        {
             sub_to_partition[sub_id] = sub_id / sub_part_count;
         }
 
@@ -368,10 +397,13 @@ class OGPart {
         cout << "--- Running refinement ---\n";
 
         int refine_capacity;
-        if (IS_VERTEX_BALANCED) {
+        if (IS_VERTEX_BALANCED)
+        {
             refine_capacity =
                 (vertex_count / part_count) * (1 + P2_BALANCE_SLACK) + 1;
-        } else {
+        }
+        else
+        {
             refine_capacity =
                 (edge_count / part_count) * (1 + P2_BALANCE_SLACK) + 1;
             refine_capacity *= 2;
@@ -398,12 +430,14 @@ class OGPart {
         result.phase2_edge_cut = phase2_edge_cut;
     }
 
-    void write_to_file() {
+    void write_to_file()
+    {
         string out_file = "lookup_" + dataset_name +
                           std::to_string(part_count) + "_" +
                           std::to_string(sub_part_count) + ".txt";
         ofstream out_mapping("partitioned_files/" + out_file);
-        for (int vid = 1; vid <= vertex_count; vid++) {
+        for (int vid = 1; vid <= vertex_count; vid++)
+        {
             out_mapping << vid << ","
                         << sub_to_partition[vertex_to_sub_partition[vid]]
                         << "\n";
@@ -412,9 +446,11 @@ class OGPart {
     }
 
     // TODO: Move verification to seperate file
-    void verify() {
+    void verify()
+    {
         string verify_file_path = input_file_path;
-        if (IS_DIRECTED) verify_file_path += "_orig";
+        if (IS_DIRECTED)
+            verify_file_path += "_orig";
 
         cout << "Verify path = " << verify_file_path << endl;
 
@@ -431,7 +467,8 @@ class OGPart {
 
         ll sum_rep_fac = 0, communication_vol = 0;
 
-        for (int i = 1; i <= vertex_count; i++) {
+        for (int i = 1; i <= vertex_count; i++)
+        {
             int cur_vertex_id, neighbour_count;
             fin >> cur_vertex_id >> neighbour_count;
 
@@ -443,18 +480,21 @@ class OGPart {
             sz[par_i]++;
             sz_edge[par_i] += neighbour_count;
             set<int> uniq_part;
-            for (int j = 0; j < neighbour_count; j++) {
+            for (int j = 0; j < neighbour_count; j++)
+            {
                 int adj;
                 fin >> adj;
                 int par_j = sub_to_partition[vertex_to_sub_partition[adj]];
-                if (par_i != par_j) uniq_part.insert(par_j);
+                if (par_i != par_j)
+                    uniq_part.insert(par_j);
                 edge_cut += par_i != par_j;
             }
             sum_rep_fac += uniq_part.size();
             communication_vol += uniq_part.size();
         }
 
-        if (!IS_DIRECTED) {
+        if (!IS_DIRECTED)
+        {
             edge_cut /= 2;
             ver_edge_count /= 2;
         }
@@ -465,7 +505,8 @@ class OGPart {
         ll mx_edge = 0;
         ll mn_edge = sz_edge[0] / 2;
 
-        for (int i = 0; i < part_count; i++) {
+        for (int i = 0; i < part_count; i++)
+        {
             mn = min(mn, partition_cap_edge[i]);
             mx = max(mx, sz[i]);
 
@@ -479,11 +520,15 @@ class OGPart {
         double imbalance_edge = mx_edge * 1.0 / (edge_count / part_count);
 
 #if !defined(CV)
-        if (!IS_DIRECTED && result.phase2_edge_cut != edge_cut) {
+        if (!IS_DIRECTED && result.phase2_edge_cut != edge_cut)
+        {
             // TODO: Fix in the case of twitter
-            if (abs(result.phase2_edge_cut - edge_cut) == 1) {
+            if (abs(result.phase2_edge_cut - edge_cut) == 1)
+            {
                 cout << "\n!!! Incorrect edge cut reported !!!\n\n";
-            } else {
+            }
+            else
+            {
                 assert(false);
             }
         }
@@ -504,7 +549,8 @@ class OGPart {
              << endl;
     }
 
-    void graph_stats() {
+    void graph_stats()
+    {
         ifstream fin(input_file_path);
 
         ll vertex_count, edge_count;
@@ -512,7 +558,8 @@ class OGPart {
 
         vector<int> cnt_nodes(1e7), edge_cut(1e7);
 
-        for (int i = 1; i <= vertex_count; i++) {
+        for (int i = 1; i <= vertex_count; i++)
+        {
             int cur_vertex_id, neighbour_count;
             fin >> cur_vertex_id >> neighbour_count;
 
@@ -522,7 +569,8 @@ class OGPart {
             int par_i =
                 sub_to_partition[vertex_to_sub_partition[cur_vertex_id]];
 
-            for (int j = 0; j < neighbour_count; j++) {
+            for (int j = 0; j < neighbour_count; j++)
+            {
                 int adj;
                 fin >> adj;
                 int par_j = sub_to_partition[vertex_to_sub_partition[adj]];
@@ -535,22 +583,26 @@ class OGPart {
 
         ofstream out("results/visualize.csv");
         out << "deg,edges,cut\n";
-        for (int deg = 0; deg < 1e7; deg++) {
+        for (int deg = 0; deg < 1e7; deg++)
+        {
             out << deg << "," << cnt_nodes[deg] << "," << edge_cut[deg] << "\n";
         }
         out.close();
     }
 
-   private:
-
-    void build_sub_partition_graph(int vid, vector<pair<int, int>> &adj) {
+private:
+    void build_sub_partition_graph(int vid, vector<pair<int, int>> &adj)
+    {
         auto update_sub_part_graph = [&](const int vid,
-                                         const vector<pair<int, int>> &adj) {
+                                         const vector<pair<int, int>> &adj)
+        {
             int assigned_sub_part = vertex_to_sub_partition[vid];
 #ifndef CV
-            for (auto [neighbour, neighbour_sub_part] : adj) {
+            for (auto [neighbour, neighbour_sub_part] : adj)
+            {
                 if (neighbour_sub_part != -1 &&
-                    neighbour_sub_part != assigned_sub_part) {
+                    neighbour_sub_part != assigned_sub_part)
+                {
                     sub_part_graph[assigned_sub_part][neighbour_sub_part]++;
                     sub_part_graph[neighbour_sub_part][assigned_sub_part]++;
                 }
@@ -558,16 +610,19 @@ class OGPart {
 #else
             // currently only supports undirected graphs
             set<int> uq_nei_sub_part;
-            for (auto [neighbour, neighbour_sub_part] : adj) {
+            for (auto [neighbour, neighbour_sub_part] : adj)
+            {
                 if (neighbour_sub_part != -1 &&
-                    neighbour_sub_part != assigned_sub_part) {
+                    neighbour_sub_part != assigned_sub_part)
+                {
                     // add in edges
                     sub_part_graph[neighbour_sub_part][assigned_sub_part]++;
                     uq_nei_sub_part.insert(neighbour_sub_part);
                 }
             }
 
-            for (int nei_sub_part : uq_nei_sub_part) {
+            for (int nei_sub_part : uq_nei_sub_part)
+            {
                 // add out edges
                 sub_part_graph[assigned_sub_part][nei_sub_part]++;
             }
@@ -577,7 +632,8 @@ class OGPart {
         update_sub_part_graph(vid, adj);
     };
 
-    void find_sub_part_and_build_sub_graph(int vid, vector<int> &adj) {
+    void find_sub_part_and_build_sub_graph(int vid, vector<int> &adj)
+    {
 
         // assign subpartition
         partition_vertex(vid, adj, true);
@@ -588,7 +644,8 @@ class OGPart {
 
         int neighbour_count = int(adj.size());
         vector<pair<int, int>> adj_state(neighbour_count);
-        for (int i = 0; i < neighbour_count; i++) {
+        for (int i = 0; i < neighbour_count; i++)
+        {
             adj_state[i] = {adj[i], vertex_to_sub_partition[adj[i]]};
         }
 
@@ -596,7 +653,8 @@ class OGPart {
     };
 
     inline void add_buffer(double score, int vid, const vector<int> &adj,
-                           int cnt_adj_partitioned) {
+                           int cnt_adj_partitioned)
+    {
         assert(score != -1);
         buffered_vertices++;
         buffered_nodes.insert({score, vid});
@@ -605,15 +663,20 @@ class OGPart {
     }
 
     // if vid = -1, evicts the first element
-    inline void evict_buffer(int vid = -1) {
-        if (buffered_nodes.empty()) return;
-        if (vid == -1) vid = buffered_nodes.begin()->second;
-        if (vertex_to_partition[vid] != -1) return;
+    inline void evict_buffer(int vid = -1)
+    {
+        if (buffered_nodes.empty())
+            return;
+        if (vid == -1)
+            vid = buffered_nodes.begin()->second;
+        if (vertex_to_partition[vid] != -1)
+            return;
 
         buffer_stream_timer.tick();
 
         int rem = buffered_nodes.erase({buffer_mask[vid].score, vid});
-        if (!rem) {
+        if (!rem)
+        {
             cout << buffer_mask[vid].score << " " << vid << " "
                  << buffer_mask[vid].valid << endl;
             cout << buffered_nodes_adj[vid].size() << endl;
@@ -632,7 +695,8 @@ class OGPart {
 
     // returns boolean indicating if the given vertex is added to buffer
     bool partition_vertex(int vid, const vector<int> &adj,
-                          bool partition_for_sub) {
+                          bool partition_for_sub)
+    {
         int parent_partition =
             (partition_for_sub ? vertex_to_partition[vid] : -1);
 
@@ -644,14 +708,16 @@ class OGPart {
                 : find_partition_vertex_ec(vid, adj, partition_for_sub);
 
         set_partition(vid, best_partition, partition_for_sub);
-        if (partition_for_sub) {
+        if (partition_for_sub)
+        {
             sub_partition_sz[vertex_to_sub_partition[vid]] +=
                 IS_VERTEX_BALANCED ? 1 : int(adj.size());
         }
 
         // TODO: Study edge balance capacity updates
 
-        if (!partition_for_sub) {
+        if (!partition_for_sub)
+        {
             balance_score_part.erase(
                 {(IS_VERTEX_BALANCED ? partition_cap[best_partition]
                                      : partition_cap_edge[best_partition]),
@@ -663,10 +729,13 @@ class OGPart {
             ll current_capacity =
                 (IS_VERTEX_BALANCED ? partition_cap[best_partition]
                                     : partition_cap_edge[best_partition]);
-            if (current_capacity < capacity_constraint[partition_for_sub]) {
+            if (current_capacity < capacity_constraint[partition_for_sub])
+            {
                 balance_score_part.insert({current_capacity, best_partition});
             }
-        } else {
+        }
+        else
+        {
             balance_score_sub_part[parent_partition].erase(
                 {IS_VERTEX_BALANCED
                      ? sub_partition_cap[parent_partition][best_partition]
@@ -682,17 +751,21 @@ class OGPart {
                      ? sub_partition_cap[parent_partition][best_partition]
                      : sub_partition_cap_edge[parent_partition]
                                              [best_partition]);
-            if (current_capacity < capacity_constraint[partition_for_sub]) {
+            if (current_capacity < capacity_constraint[partition_for_sub])
+            {
                 balance_score_sub_part[parent_partition].insert(
                     {current_capacity, best_partition});
             }
         }
 
-        if (!partition_for_sub) {
+        if (!partition_for_sub)
+        {
             int assigned_neighbours = 0;
-            for (int neighbour : adj) {
+            for (int neighbour : adj)
+            {
                 auto nei_part = get_partition(neighbour, parent_partition);
-                if (nei_part != -1) assigned_neighbours++;
+                if (nei_part != -1)
+                    assigned_neighbours++;
             }
             stream_edge_cut += assigned_neighbours - best_partition_neigh_count;
         }
@@ -701,8 +774,10 @@ class OGPart {
 
         // update buffer
         // TODO MILAD: check if all neighbours are assigned force eviction
-        for (int neighbour : adj) {
-            if (!partition_for_sub && buffer_mask[neighbour].valid) {
+        for (int neighbour : adj)
+        {
+            if (!partition_for_sub && buffer_mask[neighbour].valid)
+            {
                 buffer_update_timer.tick();
                 int rem = buffered_nodes.erase(
                     {buffer_mask[neighbour].score, neighbour});
@@ -715,11 +790,14 @@ class OGPart {
             }
         }
 
-        if (ENABLE_BUFFER_EVICTION && !partition_for_sub) {
-            for (int neighbour : adj) {
+        if (ENABLE_BUFFER_EVICTION && !partition_for_sub)
+        {
+            for (int neighbour : adj)
+            {
                 // update adj in buffer
                 // TODO: memory issue with buffer_mask, can be unordered map
-                if (buffer_mask[neighbour].valid) {
+                if (buffer_mask[neighbour].valid)
+                {
                     buffer_mask[neighbour].adj_partitioned++;
                     // double percent_partitioned =
                     //     buffer_mask[neighbour].adj_partitioned * 1.0 /
@@ -733,7 +811,8 @@ class OGPart {
                         (not_partitioned <=
                              BUFFER_EVICTION_PARTITION_THRESHOLD or
                          ((double)buffer_mask[neighbour].adj_partitioned /
-                          (double)buffer_mask[neighbour].degree) > 0.8)) {
+                          (double)buffer_mask[neighbour].degree) > 0.8))
+                    {
                         buffer_mask[neighbour].valid = false;
                         buffer_partition_queue.push(neighbour);
                     }
@@ -745,17 +824,20 @@ class OGPart {
     }
 
     pair<int, int> find_partition_vertex_ec(int vid, const vector<int> &adj,
-                                            bool partition_for_sub) {
+                                            bool partition_for_sub)
+    {
         int parent_partition =
             (partition_for_sub ? vertex_to_partition[vid] : -1);
 
         double best_partition_score = -1e9;
         vector<pair<int, int>>
-            best_partitions;  // {partition_id, neighbour_count}
+            best_partitions; // {partition_id, neighbour_count}
 
-        for (int neighbour : adj) {
+        for (int neighbour : adj)
+        {
             auto nei_part = get_partition(neighbour, parent_partition);
-            if (nei_part == -1) continue;
+            if (nei_part == -1)
+                continue;
 
             ll neigh_part_cap =
                 get_partition_capacity(nei_part, parent_partition);
@@ -771,11 +853,14 @@ class OGPart {
                 (double)neigh_count -
                 get_balance_score(nei_part, parent_partition);
 
-            if (neigh_partition_score > best_partition_score) {
+            if (neigh_partition_score > best_partition_score)
+            {
                 best_partition_score = neigh_partition_score;
                 best_partitions.clear();
                 best_partitions.push_back({nei_part, neigh_count});
-            } else if (neigh_partition_score == best_partition_score) {
+            }
+            else if (neigh_partition_score == best_partition_score)
+            {
                 best_partitions.push_back({nei_part, neigh_count});
             }
         }
@@ -784,15 +869,20 @@ class OGPart {
             double non_neighbours_score = -INF;
             int non_neighbour_part = -1;
             // query best partition from ordered set
-            if (!partition_for_sub) {
-                if (!balance_score_part.empty()) {
+            if (!partition_for_sub)
+            {
+                if (!balance_score_part.empty())
+                {
                     auto [part_size, part] = *balance_score_part.begin();
                     non_neighbours_score = -get_balance_score(part, -1);
                     non_neighbour_part = part;
                 }
-            } else {
+            }
+            else
+            {
                 assert(parent_partition != -1);
-                if (!balance_score_sub_part[parent_partition].empty()) {
+                if (!balance_score_sub_part[parent_partition].empty())
+                {
                     auto [sub_part_size, sub_part] =
                         *balance_score_sub_part[parent_partition].begin();
                     non_neighbours_score =
@@ -800,10 +890,13 @@ class OGPart {
                     non_neighbour_part = sub_part;
                 }
             }
-            if (non_neighbours_score > best_partition_score) {
+            if (non_neighbours_score > best_partition_score)
+            {
                 best_partitions.clear();
                 best_partitions.push_back({non_neighbour_part, 0});
-            } else if (non_neighbours_score == best_partition_score) {
+            }
+            else if (non_neighbours_score == best_partition_score)
+            {
                 best_partitions.push_back({non_neighbour_part, 0});
             }
         }
@@ -813,38 +906,45 @@ class OGPart {
         return best_partitions[dist(partition_for_sub ? rng_sub : rng)];
     }
 
-    pair<int, int> find_partition_vertex_cv(int vid, const vector<int> &adj) {
+    pair<int, int> find_partition_vertex_cv(int vid, const vector<int> &adj)
+    {
         bool partition_for_sub = false;
         int parent_partition = -1;
 
         int best_score = INF;
-        vector<pair<int, int>> best_partitions;  // {part_id, neigh_count}
+        vector<pair<int, int>> best_partitions; // {part_id, neigh_count}
 
         // O(EP)
-        for (int part_id = 0; part_id < part_count; part_id++) {
+        for (int part_id = 0; part_id < part_count; part_id++)
+        {
             if (get_partition_capacity(part_id, parent_partition) >=
                 capacity_constraint[partition_for_sub])
                 continue;
 
-            double cur_part_score = 0;  // score based on cv
+            double cur_part_score = 0; // score based on cv
             int part_neigh_count = 0;
 
             // vis_part[part_id] = 1 -> vid sends msg from it's current
             // partition to part_id
             bitset<MAX_PARTITIONS> vis_part;
 
-            for (int neighbour : adj) {
+            for (int neighbour : adj)
+            {
                 auto nei_part = get_partition(neighbour, parent_partition);
-                if (nei_part == -1) continue;
+                if (nei_part == -1)
+                    continue;
 
-                if (part_id == nei_part) part_neigh_count++;
+                if (part_id == nei_part)
+                    part_neigh_count++;
 
-                if (nei_part != part_id) {
+                if (nei_part != part_id)
+                {
                     // cv from in-edge
                     cur_part_score += vertex_message[neighbour][part_id] ^ 1;
 
                     // cv from out-edge with sender side aggregation
-                    if (!vis_part[nei_part]) {
+                    if (!vis_part[nei_part])
+                    {
                         vis_part[nei_part] = 1;
                         cur_part_score++;
                     }
@@ -855,25 +955,32 @@ class OGPart {
             // cur_part_score += 3 * get_balance_score(part_id,
             // parent_partition); // Change
 
-            if (cur_part_score < best_score) {
+            if (cur_part_score < best_score)
+            {
                 best_score = cur_part_score;
                 best_partitions.clear();
                 best_partitions.push_back({part_id, part_neigh_count});
-            } else if (cur_part_score == best_score) {
+            }
+            else if (cur_part_score == best_score)
+            {
                 best_partitions.push_back({part_id, part_neigh_count});
             }
         }
 
-        if (!balance_score_part.empty()) {
+        if (!balance_score_part.empty())
+        {
             auto [part_size, part] = *balance_score_part.begin();
             double non_neighbours_score =
                 get_balance_score(part, parent_partition);
             int non_neighbour_part = part;
 
-            if (non_neighbours_score < best_score) {
+            if (non_neighbours_score < best_score)
+            {
                 best_partitions.clear();
                 best_partitions.push_back({non_neighbour_part, 0});
-            } else if (non_neighbours_score == best_score) {
+            }
+            else if (non_neighbours_score == best_score)
+            {
                 best_partitions.push_back({non_neighbour_part, 0});
             }
         }
@@ -883,9 +990,11 @@ class OGPart {
         auto [best_partition, best_partition_neigh_count] =
             best_partitions[dist(partition_for_sub ? rng_sub : rng)];
 
-        for (int neighbour : adj) {
+        for (int neighbour : adj)
+        {
             auto nei_part = get_partition(neighbour, parent_partition);
-            if (nei_part != -1) vertex_message[vid][nei_part] = 1;
+            if (nei_part != -1)
+                vertex_message[vid][nei_part] = 1;
         }
 
         return {best_partition, best_partition_neigh_count};
@@ -893,11 +1002,13 @@ class OGPart {
 
     // increment neighbour count in neigh_part for vid
     inline int update_part_neighbour_count(int vid, int neigh_part,
-                                           bool partition_for_sub) {
+                                           bool partition_for_sub)
+    {
         auto &[neigh_count, last_vid] =
             (partition_for_sub ? sub_part_neighbour[neigh_part]
                                : part_neighbour[neigh_part]);
-        if (last_vid != vid) {
+        if (last_vid != vid)
+        {
             neigh_count = 0;
             last_vid = vid;
         }
@@ -906,13 +1017,17 @@ class OGPart {
     }
 
     // set parent partition if querying capacity for sub partition
-    inline int get_partition_capacity(int part, int parent_partition) {
-        if (IS_VERTEX_BALANCED) {
+    inline int get_partition_capacity(int part, int parent_partition)
+    {
+        if (IS_VERTEX_BALANCED)
+        {
             if (parent_partition == -1)
                 return partition_cap[part];
             else
                 return sub_partition_cap[parent_partition][part];
-        } else {
+        }
+        else
+        {
             if (parent_partition == -1)
                 return partition_cap_edge[part];
             else
@@ -920,14 +1035,17 @@ class OGPart {
         }
     }
 
-    inline double get_balance_score(int partition, int parent_partition) {
+    inline double get_balance_score(int partition, int parent_partition)
+    {
         bool partition_for_sub = parent_partition != -1;
         // double GAMMA = 2;
-        if (IS_VERTEX_BALANCED) {
+        if (IS_VERTEX_BALANCED)
+        {
             if (!partition_for_sub)
                 return alpha[partition_for_sub] * GAMMA *
                        pow(1.0 * partition_cap[partition], GAMMA - 1);
-            else {
+            else
+            {
                 // TODO: Parameterize - Sub_gamma
                 double SUB_GAMMA = 1;
                 int vertex_count =
@@ -935,14 +1053,17 @@ class OGPart {
                 return alpha[partition_for_sub] * SUB_GAMMA *
                        pow(1.0 * vertex_count, SUB_GAMMA - 1);
             }
-        } else {
+        }
+        else
+        {
             if (!partition_for_sub)
                 return alpha[partition_for_sub] * GAMMA *
                        pow((1.0 * partition_cap[partition] +
                             mu * 1.0 * partition_cap_edge[partition]) /
                                2.0,
                            GAMMA - 1);
-            else {
+            else
+            {
                 // TODO: Parameterize - Sub_gamma
                 double SUB_GAMMA = 1.1;
                 int vertex_count =
@@ -959,26 +1080,36 @@ class OGPart {
     }
 
     // set parent_partition if querying for sub partitions
-    inline int get_partition(int vid, int parent_partition = -1) {
-        if (parent_partition == -1) {
+    inline int get_partition(int vid, int parent_partition = -1)
+    {
+        if (parent_partition == -1)
+        {
             return vertex_to_partition[vid];
-        } else {
+        }
+        else
+        {
             if (vertex_to_sub_partition[vid] != -1 &&
-                vertex_to_partition[vid] == parent_partition) {
+                vertex_to_partition[vid] == parent_partition)
+            {
                 return vertex_to_sub_partition[vid] % sub_part_count;
-            } else
+            }
+            else
                 return -1;
         }
     }
 
     // For sub partitions : assign_partition_id ∈ [0,sub_part_count)
     inline void set_partition(int vid, int assign_partition_id,
-                              bool partition_for_sub) {
-        if (!partition_for_sub) {
+                              bool partition_for_sub)
+    {
+        if (!partition_for_sub)
+        {
             assert(assign_partition_id >= 0 &&
                    assign_partition_id < part_count);
             vertex_to_partition[vid] = assign_partition_id;
-        } else {
+        }
+        else
+        {
             assert(assign_partition_id >= 0 &&
                    assign_partition_id < sub_part_count);
             assert(vertex_to_partition[vid] != -1);
@@ -987,7 +1118,8 @@ class OGPart {
         }
     }
 
-    void show_stream_stats() {
+    void show_stream_stats()
+    {
         // #ifdef DIRECTED
         //         edge_count /= 2;
         // #endif
@@ -995,15 +1127,18 @@ class OGPart {
         // TODO: Change range for ll -> MILAD: Fixed
         ll max_partition_sz = partition_cap[0],
            min_partition_sz = partition_cap[0];
-        for (int i = 0; i < part_count; i++) {
+        for (int i = 0; i < part_count; i++)
+        {
             max_partition_sz = max(max_partition_sz, partition_cap[i]);
             min_partition_sz = min(min_partition_sz, partition_cap[i]);
         }
     }
 };
 
-int main(int argc, const char *argv[]) {
-    cout<<"-- Running Single thread implementation -- "<<"\n";
+int main(int argc, const char *argv[])
+{
+    cout << "-- Running Single thread implementation -- "
+         << "\n";
     program_timer.tick();
 #ifdef CV
     cout << "CV MODE!" << endl;
@@ -1018,22 +1153,38 @@ int main(int argc, const char *argv[]) {
     ll INFO_GAIN_THRESHOLD = -1;
     bool IS_VERTEX_BALANCED = true;
 
-    for (int i = 1; i < argc; i += 2) {
-        if (strcmp(argv[i], "-d") == 0) {
+    for (int i = 1; i < argc; i += 2)
+    {
+        if (strcmp(argv[i], "-d") == 0)
+        {
             input_file_path = argv[i + 1];
-        } else if (strcmp(argv[i], "-p") == 0) {
+        }
+        else if (strcmp(argv[i], "-p") == 0)
+        {
             part_count = atoi(argv[i + 1]);
-        } else if (strcmp(argv[i], "-subp") == 0) {
+        }
+        else if (strcmp(argv[i], "-subp") == 0)
+        {
             sub_part_count = atoi(argv[i + 1]);
-        } else if (strcmp(argv[i], "-b") == 0) {
+        }
+        else if (strcmp(argv[i], "-b") == 0)
+        {
             BALANCE_SLACK = atof(argv[i + 1]) - 1;
-        } else if (strcmp(argv[i], "-g") == 0) {
+        }
+        else if (strcmp(argv[i], "-g") == 0)
+        {
             GAMMA = atof(argv[i + 1]);
-        } else if (strcmp(argv[i], "-i") == 0) {
+        }
+        else if (strcmp(argv[i], "-i") == 0)
+        {
             INFO_GAIN_THRESHOLD = atoi(argv[i + 1]);
-        } else if (strcmp(argv[i], "-vb") == 0) {
+        }
+        else if (strcmp(argv[i], "-vb") == 0)
+        {
             IS_VERTEX_BALANCED = atoi(argv[i + 1]);
-        } else {
+        }
+        else
+        {
             cout << "Unrecognized parameter: " << argv[i] << "\n";
         }
     }
@@ -1047,14 +1198,18 @@ int main(int argc, const char *argv[]) {
     ogpart.partition();
 
     program_timer.log();
-    cout << "Writing to file...\n" << endl;
+    cout << "Writing to file...\n"
+         << endl;
     ogpart.write_to_file();
 
     // setup result
-    if (input_file_path.find_last_of("/") != string::npos) {
+    if (input_file_path.find_last_of("/") != string::npos)
+    {
         result.dataset =
             input_file_path.substr(input_file_path.find_last_of("/") + 1);
-    } else {
+    }
+    else
+    {
         result.dataset = input_file_path;
     }
 

@@ -16,7 +16,6 @@ enum update_type_t
     UPDATE
 };
 
-
 class Refine
 {
     // # of partitions, total # of sub partitions under all partitions

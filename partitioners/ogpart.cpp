@@ -19,7 +19,8 @@ inline mt19937 rng(42), rng_sub(42);
 bool IS_DIRECTED;
 
 template <typename T>
-T read_int(char *&file_ptr){
+T read_int(char *&file_ptr)
+{
     while (!isdigit(*file_ptr))
         file_ptr++;
 
@@ -529,7 +530,6 @@ public:
         sub_graph_build_timer.log();
         refine_timer.log();
 
-
         // populate edge cut in results
         result.edge_count = edge_count;
         result.stream_edge_cut = stream_edge_cut;
@@ -577,7 +577,7 @@ public:
         {
             int cur_vertex_id, neighbour_count;
             fin >> cur_vertex_id >> neighbour_count;
-            
+
             ver_edge_count += neighbour_count;
 
             int par_i =
@@ -620,12 +620,10 @@ public:
             mn_edge = min(mn_edge, sz_edge[i]) / 2;
         }
 
-
         double imbalance_vertex = mx * 1.0 / (vertex_count / part_count);
         // assert(imbalance_vertex < 1 + P2_BALANCE_SLACK + 0.01);
 
         double imbalance_edge = mx_edge * 1.0 / (edge_count / part_count);
-
 
 #if !defined(CV)
         if (!IS_DIRECTED && result.phase2_edge_cut != edge_cut)
@@ -740,7 +738,6 @@ private:
 
         bool enable_cv_optimization = false;
 
-
         auto [best_partition, best_partition_neigh_count] =
             enable_cv_optimization
                 ? find_partition_vertex_cv(vid, adj)
@@ -752,7 +749,6 @@ private:
             sub_partition_sz[vertex_to_sub_partition[vid]] +=
                 IS_VERTEX_BALANCED ? 1 : int(adj.size());
         }
-
 
         if (!partition_for_sub)
         {
@@ -1104,7 +1100,6 @@ private:
                 int edge_count =
                     sub_partition_cap_edge[parent_partition][partition];
                 return 0;
-    
             }
         }
     }
@@ -1155,23 +1150,22 @@ private:
         // #endif
 
         ll max_partition_sz = partition_cap[0],
-            min_partition_sz = partition_cap[0];
+           min_partition_sz = partition_cap[0];
         for (int i = 0; i < part_count; i++)
         {
             max_partition_sz = max(max_partition_sz, partition_cap[i]);
             min_partition_sz = min(min_partition_sz, partition_cap[i]);
         }
-
     }
 };
 
 int main(int argc, const char *argv[])
 {
     program_timer.tick();
-    #ifdef CV
-        cout << "CV MODE!" << endl;
-        // if (!partition_for_sub) enable_cv_optimization = true; // CHANGE
-    #endif
+#ifdef CV
+    cout << "CV MODE!" << endl;
+    // if (!partition_for_sub) enable_cv_optimization = true; // CHANGE
+#endif
     assert(argc >= 4);
 
     string input_file_path;
