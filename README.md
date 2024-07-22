@@ -50,13 +50,13 @@ Where:
 1. `dataset` is the relative path to the dataset file. (Specified below)
 
 2. `partition_count` is K in the paper or number of the partitions which is a single integer. 
-3. `imbalance` is the epsilon in the paper that controls or relax imbalance. Imbalance is a float number. 
+3. `imbalance` is the 1+epsilon in the paper that controls or relaxes imbalance. Imbalance is a float number. 
 4. `vb` is boolean value that controls whether the balance is edge or vertex. 
 
 So for example a valid command is:
 
 ```
-./ogpart -d data/twitter -p 4 -b 0.05 -vb 1
+./ogpart -d data/twitter -p 4 -b 1.05 -vb 1
 ```
 
 You can also determine number of sub-partitions and buffer size as well. 
