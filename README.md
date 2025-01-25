@@ -101,3 +101,17 @@ To optimize for communication volume you should compile with defining `CV` flag.
 This mode has optimizations for communication volume particularly for synchronous graph analytics. 
 
 
+-----------------------------
+
+The accepted paper can be found [here](https://www.vldb.org/pvldb/vol18/p14-hajidehi.pdf).
+
+If you used our paper please cite it using this bibtex: 
+
+```
+@article{hajidehi2023cuttana,
+  title={CUTTANA: Scalable Graph Partitioning for Faster Distributed Graph Databases and Analytics},
+  author={Hajidehi, Milad Rezaei and Sridhar, Sraavan and Seltzer, Margo},
+  journal={arXiv preprint arXiv:2312.08356},
+  year={2023}
+}
+```
